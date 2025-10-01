@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useParams, useRouter } from 'next/navigation'
-import { Trophy, Calendar, Users, Target, Settings, Play, Pause, Eye, Shield } from 'lucide-react'
+import { Trophy, Calendar, Users, Target, Settings, Play, Pause, Eye, Shield, ArrowLeft } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Button } from '../../../components/ui/button'
 import { getBoulderColorClass, getBoulderColorText } from '../../../lib/scoring'
@@ -184,6 +184,7 @@ export default function CompetitionDetailsPage() {
                 </Button>
               )}
               <Button variant="outline" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
             </div>

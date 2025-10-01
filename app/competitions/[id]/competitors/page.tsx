@@ -55,13 +55,26 @@ export default function CompetitorsPage() {
     if (competitionId) {
       fetchData()
     }
-    
-    // Check if user is logged in
+
+    // Check if user is logged in and fetch profile
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
+
+      // If user is logged in, fetch their profile name
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.full_name) {
+          setNewCompetitor(prev => ({ ...prev, name: profile.full_name }))
+        }
+      }
     }
-    
+
     checkUser()
 
     // Check if user is admin
@@ -69,7 +82,7 @@ export default function CompetitorsPage() {
       const adminStatus = await isCompetitionAdmin(competitionId)
       setIsAdmin(adminStatus)
     }
-    
+
     checkAdmin()
   }, [competitionId])
 
@@ -255,9 +268,9 @@ export default function CompetitorsPage() {
                   </Button>
                 )
               ) : (
-                <div className="text-sm text-gray-500">
-                  Please log in to register
-                </div>
+                <Button onClick={() => router.push('/login')}>
+                  Log In to Register
+                </Button>
               )}
               <Button variant="outline" onClick={() => router.back()}>
                 Back
