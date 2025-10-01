@@ -32,6 +32,7 @@ interface Competitor {
   competitor_number: string
   category: 'male' | 'female' | 'other'
   age_group: 'u11' | 'u13' | 'u15' | 'u17' | 'u19' | 'open' | 'masters' | 'veterans'
+  user_id?: string
 }
 
 export default function CompetitionDetailsPage() {
@@ -44,7 +45,8 @@ export default function CompetitionDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
-  
+  const [isRegistered, setIsRegistered] = useState(false)
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -79,7 +81,7 @@ export default function CompetitionDetailsPage() {
       // Fetch competitors
       const { data: competitorsData, error: competitorsError } = await supabase
         .from('competitors')
-        .select('*')
+        .select('id, name, competitor_number, category, age_group, user_id')
         .eq('competition_id', competitionId)
         .order('competitor_number')
 
@@ -92,6 +94,13 @@ export default function CompetitionDetailsPage() {
       // Check if current user is admin
       const adminStatus = await isCompetitionAdmin(competitionId)
       setIsAdmin(adminStatus)
+
+      // Check if current user is already registered as a competitor
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user && competitorsData) {
+        const userCompetitor = competitorsData.find(c => c.user_id === user.id)
+        setIsRegistered(!!userCompetitor)
+      }
     } catch (error) {
       console.error('Error fetching competition data:', error)
     } finally {
@@ -327,17 +336,17 @@ export default function CompetitionDetailsPage() {
                   View Results
                 </Button>
                 {isAdmin ? (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full"
                     onClick={() => router.push(`/competitions/${competitionId}/competitors`)}
                   >
                     <Shield className="h-4 w-4 mr-2" />
                     Manage Competitors
                   </Button>
-                ) : (
-                  <Button 
-                    variant="outline" 
+                ) : !isRegistered && (
+                  <Button
+                    variant="outline"
                     className="w-full"
                     onClick={() => router.push(`/competitions/${competitionId}/competitors`)}
                   >

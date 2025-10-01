@@ -58,6 +58,7 @@ export default function ResultsPage() {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'male' | 'female' | 'other'>('all')
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<'all' | 'u11' | 'u13' | 'u15' | 'u17' | 'u19' | 'open' | 'masters' | 'veterans'>('all')
   const [expandedCompetitor, setExpandedCompetitor] = useState<string | null>(null)
+  const [statsLookup, setStatsLookup] = useState<Map<string, number>>(new Map())
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -102,7 +103,14 @@ export default function ResultsPage() {
 
       if (competitorsError) throw competitorsError
 
-      // Fetch boulder statistics
+      // Fetch boulder statistics for this competition
+      const { data: bouldersForStats } = await supabase
+        .from('boulders')
+        .select('id')
+        .eq('competition_id', competitionId)
+
+      const boulderIds = bouldersForStats?.map(b => b.id) || []
+
       const { data: boulderStatsData, error: statsError } = await supabase
         .from('boulder_stats')
         .select(`
@@ -114,18 +122,28 @@ export default function ResultsPage() {
             base_points
           )
         `)
-        .eq('boulder_id', competitionId)
+        .in('boulder_id', boulderIds)
 
       if (statsError) throw statsError
 
       setCompetition(competitionData)
 
+      // Create a lookup map for boulder stats by boulder_id, category, and age_group
+      const newStatsLookup = new Map<string, number>()
+      boulderStatsData?.forEach(stat => {
+        const key = `${stat.boulder_id}-${stat.category}-${stat.age_group}`
+        newStatsLookup.set(key, stat.calculated_points)
+      })
+      setStatsLookup(newStatsLookup)
+
       // Process competitors data
       const processedCompetitors = competitorsData?.map(comp => {
-        const toppedBoulders = comp.scores?.filter(s => s.topped) || []
-        const totalScore = toppedBoulders.reduce((sum, score) => {
-          // This would need to be calculated based on the actual scoring algorithm
-          return sum + (score.boulders?.base_points || 0)
+        const toppedBoulders = comp.scores?.filter((s: Score) => s.topped) || []
+        const totalScore = toppedBoulders.reduce((sum: number, score: Score) => {
+          // Look up the calculated points for this boulder/category/age_group combination
+          const key = `${score.boulder_id}-${comp.category}-${comp.age_group}`
+          const points = newStatsLookup.get(key) || score.boulders?.base_points || 0
+          return sum + points
         }, 0)
 
         return {
@@ -274,7 +292,15 @@ export default function ResultsPage() {
                 <div className="space-y-2">
                   {filteredCompetitors.map((competitor, index) => {
                     const isExpanded = expandedCompetitor === competitor.id
-                    const toppedScores = competitor.scores?.filter(s => s.topped) || []
+                    const toppedScores = competitor.scores?.filter((s: Score) => s.topped) || []
+
+                    // Sort boulders by color order: green, yellow, orange, red, black
+                    const colorOrder = { green: 0, yellow: 1, orange: 2, red: 3, black: 4 }
+                    const sortedToppedScores = [...toppedScores].sort((a, b) => {
+                      const colorA = a.boulders?.color || 'green'
+                      const colorB = b.boulders?.color || 'green'
+                      return (colorOrder[colorA as keyof typeof colorOrder] || 0) - (colorOrder[colorB as keyof typeof colorOrder] || 0)
+                    })
 
                     return (
                       <div key={competitor.id} className="bg-gray-50 rounded-lg overflow-hidden">
@@ -311,32 +337,42 @@ export default function ResultsPage() {
                           <div className="px-4 pb-4 border-t border-gray-200 bg-white">
                             <div className="pt-4">
                               <h4 className="text-sm font-medium text-gray-700 mb-3">Boulders Topped</h4>
-                              {(() => {
-                                console.log('Competitor:', competitor.name)
-                                console.log('All scores:', competitor.scores)
-                                console.log('Topped scores:', toppedScores)
-                                return null
-                              })()}
-                              {toppedScores.length === 0 ? (
+                              {sortedToppedScores.length === 0 ? (
                                 <p className="text-sm text-gray-500">No boulders topped yet (Total scores: {competitor.scores?.length || 0})</p>
                               ) : (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                  {toppedScores.map((score) => (
-                                    <div
-                                      key={score.boulder_id}
-                                      className="flex items-center space-x-2 p-2 bg-gray-50 rounded"
-                                    >
-                                      <div className={`w-3 h-3 rounded-full ${getBoulderColorClass(score.boulders?.color || 'green')}`}></div>
-                                      <div>
-                                        <div className="text-sm font-medium">
-                                          {score.boulders?.identifier}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {sortedToppedScores.map((score) => {
+                                    const key = `${score.boulder_id}-${competitor.category}-${competitor.age_group}`
+                                    const totalPoints = statsLookup.get(key) || score.boulders?.base_points || 0
+                                    const basePoints = score.boulders?.base_points || 0
+                                    const bonusPoints = totalPoints - basePoints
+                                    return (
+                                      <div
+                                        key={score.boulder_id}
+                                        className="flex items-center justify-between p-3 bg-gray-50 rounded"
+                                      >
+                                        <div className="flex items-center space-x-2">
+                                          <div className={`w-3 h-3 rounded-full ${getBoulderColorClass(score.boulders?.color || 'green')}`}></div>
+                                          <div>
+                                            <div className="text-sm font-medium">
+                                              {score.boulders?.identifier}
+                                            </div>
+                                            {score.top_time && score.boulders?.color === 'black' && (
+                                              <div className="text-xs text-gray-500">{score.top_time}</div>
+                                            )}
+                                          </div>
                                         </div>
-                                        {score.top_time && score.boulders?.color === 'black' && (
-                                          <div className="text-xs text-gray-500">{score.top_time}</div>
-                                        )}
+                                        <div className="text-right">
+                                          <div className="text-sm font-semibold text-primary">
+                                            {totalPoints.toFixed(0)} pts
+                                          </div>
+                                          <div className="text-xs text-gray-600">
+                                            {basePoints} + {bonusPoints.toFixed(0)} bonus
+                                          </div>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    )
+                                  })}
                                 </div>
                               )}
                             </div>

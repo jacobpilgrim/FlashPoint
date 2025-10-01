@@ -1,16 +1,29 @@
 'use client'
 
-import React from 'react'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { User } from '@supabase/supabase-js'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
-import { LogOut, User as UserIcon, Trophy, BarChart3 } from 'lucide-react'
+import { LogOut, User as UserIcon, Trophy, Plus, Users, Calendar } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import { Button } from '../components/ui/button'
+import Link from 'next/link'
+
+interface Competition {
+  id: string
+  name: string
+  description: string | null
+  start_date: string
+  end_date: string
+  is_active: boolean
+  competitor_count?: number
+}
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [competitions, setCompetitions] = useState<Competition[]>([])
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -21,6 +34,9 @@ export default function Home() {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       setLoading(false)
+      if (user) {
+        fetchCompetitions()
+      }
     }
 
     getUser()
@@ -29,11 +45,45 @@ export default function Home() {
       (event, session) => {
         setUser(session?.user ?? null)
         setLoading(false)
+        if (session?.user) {
+          fetchCompetitions()
+        }
       }
     )
 
     return () => subscription.unsubscribe()
   }, [supabase.auth])
+
+  const fetchCompetitions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('competitions')
+        .select(`
+          *,
+          competitors(count)
+        `)
+        .order('start_date', { ascending: false })
+
+      if (error) throw error
+
+      const competitionsWithCounts = data?.map(comp => ({
+        ...comp,
+        competitor_count: comp.competitors?.[0]?.count || 0
+      })) || []
+
+      setCompetitions(competitionsWithCounts)
+    } catch (error) {
+      console.error('Error fetching competitions:', error)
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -78,6 +128,12 @@ export default function Home() {
               <h1 className="text-xl font-semibold text-gray-900">Boulder Score 2.0</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/competitions/new">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Competition
+                </Button>
+              </Link>
               <div className="flex items-center space-x-2">
                 <UserIcon className="h-5 w-5 text-gray-500" />
                 <span className="text-sm text-gray-700">{user.email}</span>
@@ -96,60 +152,63 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Welcome Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Welcome back!</h2>
-            <p className="text-gray-600">
-              Ready to track your climbing progress? Start by adding a new route or session.
-            </p>
+        {competitions.length === 0 ? (
+          <div className="text-center py-12">
+            <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No competitions yet</h3>
+            <p className="text-gray-600 mb-6">Create your first boulder competition to get started.</p>
+            <Link href="/competitions/new">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Competition
+              </Button>
+            </Link>
           </div>
-
-          {/* Quick Stats
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Quick Stats</h2>
-              <BarChart3 className="h-5 w-5 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Routes Climbed</span>
-                <span className="font-semibold">0</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Sessions</span>
-                <span className="font-semibold">0</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Best Grade</span>
-                <span className="font-semibold">-</span>
-              </div>
-            </div>
-          </div> */}
-
-          {/* Recent Activity
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-            <p className="text-gray-600">No recent activity yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {competitions.map((competition) => (
+              <Card key={competition.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{competition.name}</CardTitle>
+                    {competition.is_active && (
+                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  {competition.description && (
+                    <CardDescription>{competition.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      {formatDate(competition.start_date)} - {formatDate(competition.end_date)}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Users className="h-4 w-4 mr-2" />
+                      {competition.competitor_count} competitors
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Link href={`/competitions/${competition.id}`} className="flex-1">
+                        <Button variant="outline" className="w-full">
+                          View Details
+                        </Button>
+                      </Link>
+                      <Link href={`/competitions/${competition.id}/score`} className="flex-1">
+                        <Button className="w-full">
+                          Submit Score
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div> */}
-
-        {/* Action Buttons */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-4">
-          <a href="/competitions" className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors text-center">
-            View Competitions
-          </a>
-          <a href="/competitions/new" className="bg-secondary text-secondary-foreground px-6 py-3 rounded-lg font-medium hover:bg-secondary/90 transition-colors text-center">
-            Create Competition
-          </a>
-        </div>
-
-        {/* Setup Link */}
-        <div className="mt-6 text-center">
-          <a href="/setup" className="text-sm text-gray-500 hover:text-gray-700 underline">
-            Database Setup Checker
-          </a>
-        </div>
+        )}
       </main>
     </div>
   )
