@@ -9,15 +9,15 @@
  *   npx ts-node commands/seed-users.ts [competition-id]
  *
  * Environment variables required:
- *   NEXT_PUBLIC_SUPABASE_URL - Your Supabase project URL
+ *   NEXT_PUBLIC_SUPABASE_URL - 
  *   SUPABASE_SERVICE_ROLE_KEY - Your Supabase service role key (has admin privileges)
  */
 
 import { createClient } from '@supabase/supabase-js'
 
 // Check for required environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = "https://cbfivniygibccgllqekx.supabase.co"
+const supabaseServiceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZml2bml5Z2liY2NnbGxxZWt4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTA1MjU1OSwiZXhwIjoyMDc0NjI4NTU5fQ.ocaItMp9OtFQ46KGGzZUZqxFbsO_UEcUHVmRPY3nW7w"
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ Error: Missing required environment variables')
