@@ -122,8 +122,8 @@ export default function ResultsPage() {
 
       // Process competitors data
       const processedCompetitors = competitorsData?.map(comp => {
-        const toppedBoulders = comp.scores?.filter(s => s.topped) || []
-        const totalScore = toppedBoulders.reduce((sum, score) => {
+        const toppedBoulders = comp.scores?.filter((s: Score) => s.topped) || []
+        const totalScore = toppedBoulders.reduce((sum: number, score: Score) => {
           // This would need to be calculated based on the actual scoring algorithm
           return sum + (score.boulders?.base_points || 0)
         }, 0)
@@ -274,7 +274,7 @@ export default function ResultsPage() {
                 <div className="space-y-2">
                   {filteredCompetitors.map((competitor, index) => {
                     const isExpanded = expandedCompetitor === competitor.id
-                    const toppedScores = competitor.scores?.filter(s => s.topped) || []
+                    const toppedScores = competitor.scores?.filter((s: Score) => s.topped) || []
 
                     return (
                       <div key={competitor.id} className="bg-gray-50 rounded-lg overflow-hidden">
