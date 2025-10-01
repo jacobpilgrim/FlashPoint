@@ -1,6 +1,6 @@
-# Boulder Score 2.0
+# FlashPoint
 
-A modern climbing score tracking web application built with Next.js 14 and Supabase.
+A modern climbing competition scoring web application built with Next.js 14 and Supabase.
 
 ## Features
 
@@ -30,7 +30,7 @@ A modern climbing score tracking web application built with Next.js 14 and Supab
 
 ```bash
 git clone <your-repo-url>
-cd boulder-score-2.0
+cd flashpoint
 npm install
 ```
 
@@ -148,7 +148,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 ## Project Structure
 
 ```
-boulder-score-2.0/
+flashpoint/
 ├── app/                    # Next.js 14 app directory
 │   ├── auth/              # Authentication routes
 │   ├── globals.css        # Global styles

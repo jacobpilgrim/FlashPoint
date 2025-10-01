@@ -8,8 +8,8 @@ import { SupabaseProvider } from '../lib/supabase-provider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Boulder Score 2.0',
-  description: 'A modern climbing score tracking app',
+  title: 'FlashPoint',
+  description: 'A modern climbing competition scoring app',
 }
 
 export default function RootLayout({

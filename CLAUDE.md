@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Boulder Score 2.0 is a climbing competition scoring web application built with Next.js 14 and Supabase. It implements a dynamic scoring system where boulder points are calculated based on: `base_points + (500 / number_of_tops)` for each category/age group.
+FlashPoint is a climbing competition scoring web application built with Next.js 14 and Supabase. It implements a dynamic scoring system where boulder points are calculated based on: `base_points + (500 / number_of_tops)` for each category/age group.
 
 ## Development Commands
 

@@ -103,8 +103,8 @@ export default function Home() {
         <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
           <div className="text-center mb-8">
             <Trophy className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-gray-900">Boulder Score 2.0</h1>
-            <p className="text-gray-600 mt-2">Track your climbing progress</p>
+            <h1 className="text-3xl font-bold text-gray-900">FlashPoint</h1>
+            <p className="text-gray-600 mt-2">Climbing competition scoring</p>
           </div>
           <Auth
             supabaseClient={supabase}
@@ -125,7 +125,7 @@ export default function Home() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Trophy className="h-8 w-8 text-primary mr-3" />
-              <h1 className="text-xl font-semibold text-gray-900">Boulder Score 2.0</h1>
+              <h1 className="text-xl font-semibold text-gray-900">FlashPoint</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/competitions/new">
