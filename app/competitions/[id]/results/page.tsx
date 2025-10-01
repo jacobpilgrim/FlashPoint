@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { useParams } from 'next/navigation'
-import { Trophy, Medal, Users, Target } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { Trophy, Medal, Users, Target, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Button } from '../../../../components/ui/button'
 import { getBoulderColorClass } from '../../../../lib/scoring'
@@ -15,6 +15,18 @@ interface Competition {
   is_active: boolean
 }
 
+interface Score {
+  boulder_id: string
+  topped: boolean
+  top_time: string | null
+  boulders?: {
+    id: string
+    identifier: string
+    color: string
+    base_points: number
+  }
+}
+
 interface Competitor {
   id: string
   name: string
@@ -23,6 +35,7 @@ interface Competitor {
   age_group: 'u11' | 'u13' | 'u15' | 'u17' | 'u19' | 'open' | 'masters' | 'veterans'
   total_score: number
   boulders_topped: number
+  scores?: Score[]
 }
 
 interface Boulder {
@@ -36,6 +49,7 @@ interface Boulder {
 
 export default function ResultsPage() {
   const params = useParams()
+  const router = useRouter()
   const competitionId = params.id as string
   const [competition, setCompetition] = useState<Competition | null>(null)
   const [competitors, setCompetitors] = useState<Competitor[]>([])
@@ -43,6 +57,7 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'male' | 'female' | 'other'>('all')
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<'all' | 'u11' | 'u13' | 'u15' | 'u17' | 'u19' | 'open' | 'masters' | 'veterans'>('all')
+  const [expandedCompetitor, setExpandedCompetitor] = useState<string | null>(null)
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -74,6 +89,7 @@ export default function ResultsPage() {
           scores(
             boulder_id,
             topped,
+            top_time,
             boulders(
               id,
               identifier,
@@ -119,7 +135,8 @@ export default function ResultsPage() {
           category: comp.category,
           age_group: comp.age_group,
           total_score: totalScore,
-          boulders_topped: toppedBoulders.length
+          boulders_topped: toppedBoulders.length,
+          scores: comp.scores || []
         }
       }) || []
 
@@ -189,6 +206,10 @@ export default function ResultsPage() {
               </div>
             </div>
             <div className="flex space-x-2">
+              <Button variant="outline" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
               <Button variant="outline" onClick={fetchResults}>
                 Refresh
               </Button>
@@ -251,29 +272,79 @@ export default function ResultsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {filteredCompetitors.map((competitor, index) => (
-                    <div
-                      key={competitor.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center space-x-2">
-                          {getMedalIcon(index)}
-                          <span className="font-medium text-lg">#{index + 1}</span>
-                        </div>
-                        <div>
-                          <div className="font-semibold">{competitor.name}</div>
-                          <div className="text-sm text-gray-600">
-                            #{competitor.competitor_number} • {competitor.category} • {competitor.age_group}
+                  {filteredCompetitors.map((competitor, index) => {
+                    const isExpanded = expandedCompetitor === competitor.id
+                    const toppedScores = competitor.scores?.filter(s => s.topped) || []
+
+                    return (
+                      <div key={competitor.id} className="bg-gray-50 rounded-lg overflow-hidden">
+                        <div
+                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-100 transition-colors"
+                          onClick={() => setExpandedCompetitor(isExpanded ? null : competitor.id)}
+                        >
+                          <div className="flex items-center space-x-3 flex-1">
+                            <div className="flex items-center space-x-2">
+                              {getMedalIcon(index)}
+                              <span className="font-medium text-lg">#{index + 1}</span>
+                            </div>
+                            <div>
+                              <div className="font-semibold">{competitor.name}</div>
+                              <div className="text-sm text-gray-600">
+                                #{competitor.competitor_number} • {competitor.category} • {competitor.age_group}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                              <div className="font-bold text-lg">{competitor.total_score.toLocaleString()}</div>
+                              <div className="text-sm text-gray-600">{competitor.boulders_topped} boulders</div>
+                            </div>
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-gray-400" />
+                            )}
                           </div>
                         </div>
+
+                        {isExpanded && (
+                          <div className="px-4 pb-4 border-t border-gray-200 bg-white">
+                            <div className="pt-4">
+                              <h4 className="text-sm font-medium text-gray-700 mb-3">Boulders Topped</h4>
+                              {(() => {
+                                console.log('Competitor:', competitor.name)
+                                console.log('All scores:', competitor.scores)
+                                console.log('Topped scores:', toppedScores)
+                                return null
+                              })()}
+                              {toppedScores.length === 0 ? (
+                                <p className="text-sm text-gray-500">No boulders topped yet (Total scores: {competitor.scores?.length || 0})</p>
+                              ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                  {toppedScores.map((score) => (
+                                    <div
+                                      key={score.boulder_id}
+                                      className="flex items-center space-x-2 p-2 bg-gray-50 rounded"
+                                    >
+                                      <div className={`w-3 h-3 rounded-full ${getBoulderColorClass(score.boulders?.color || 'green')}`}></div>
+                                      <div>
+                                        <div className="text-sm font-medium">
+                                          {score.boulders?.identifier}
+                                        </div>
+                                        {score.top_time && score.boulders?.color === 'black' && (
+                                          <div className="text-xs text-gray-500">{score.top_time}</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-lg">{competitor.total_score.toLocaleString()}</div>
-                        <div className="text-sm text-gray-600">{competitor.boulders_topped} boulders</div>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>

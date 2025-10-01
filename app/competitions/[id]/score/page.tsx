@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { useParams } from 'next/navigation'
-import { Trophy, CheckCircle, XCircle, RotateCcw } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { Trophy, CheckCircle, XCircle, RotateCcw, ArrowLeft } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Button } from '../../../../components/ui/button'
 import { getBoulderColorClass, getBoulderColorText, BOULDER_COLORS } from '../../../../lib/scoring'
@@ -28,15 +28,24 @@ interface Competition {
   is_active: boolean
 }
 
+interface Competitor {
+  id: string
+  name: string
+  competitor_number: string
+}
+
 export default function ScoreSubmissionPage() {
   const params = useParams()
+  const router = useRouter()
   const competitionId = params.id as string
   const [competition, setCompetition] = useState<Competition | null>(null)
+  const [competitor, setCompetitor] = useState<Competitor | null>(null)
   const [boulders, setBoulders] = useState<Boulder[]>([])
   const [scores, setScores] = useState<Record<string, Score>>({})
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  
+  const [user, setUser] = useState<any>(null)
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -50,6 +59,15 @@ export default function ScoreSubmissionPage() {
 
   const fetchCompetitionData = async () => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
       // Fetch competition
       const { data: competitionData, error: compError } = await supabase
         .from('competitions')
@@ -58,6 +76,18 @@ export default function ScoreSubmissionPage() {
         .single()
 
       if (compError) throw compError
+
+      // Fetch user's competitor entry for this competition
+      const { data: competitorData, error: competitorError } = await supabase
+        .from('competitors')
+        .select('*')
+        .eq('competition_id', competitionId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (competitorError && competitorError.code !== 'PGRST116') {
+        throw competitorError
+      }
 
       // Fetch boulders
       const { data: bouldersData, error: bouldersError } = await supabase
@@ -68,7 +98,30 @@ export default function ScoreSubmissionPage() {
 
       if (bouldersError) throw bouldersError
 
+      // Fetch existing scores for this competitor
+      if (competitorData) {
+        const { data: scoresData, error: scoresError } = await supabase
+          .from('scores')
+          .select('*')
+          .eq('competitor_id', competitorData.id)
+
+        if (scoresError) throw scoresError
+
+        // Convert to Record format
+        const scoresRecord: Record<string, Score> = {}
+        scoresData?.forEach((score) => {
+          scoresRecord[score.boulder_id] = {
+            competitor_id: score.competitor_id,
+            boulder_id: score.boulder_id,
+            topped: score.topped,
+            top_time: score.top_time || null
+          }
+        })
+        setScores(scoresRecord)
+      }
+
       setCompetition(competitionData)
+      setCompetitor(competitorData)
       setBoulders(bouldersData || [])
     } catch (error) {
       console.error('Error fetching competition data:', error)
@@ -77,39 +130,48 @@ export default function ScoreSubmissionPage() {
     }
   }
 
-  const handleScoreChange = (competitor_id: string, boulderId: string, topped: boolean, time: string | null ) => {
+  const handleScoreChange = (boulderId: string, topped: boolean, time: string | null) => {
+    if (!competitor) return
+
     setScores(prev => ({
       ...prev,
-      [boulderId]: { competitor_id, boulder_id: boulderId, topped, top_time: time }
+      [boulderId]: {
+        competitor_id: competitor.id,
+        boulder_id: boulderId,
+        topped,
+        top_time: time
+      }
     }))
   }
 
   const handleSubmit = async () => {
-    if (!competition) return
+    if (!competition || !competitor) return
 
     setSubmitting(true)
     try {
-      const scoreEntries = Object.values(scores).filter(score => score.topped )
-      
-      if (scoreEntries.length === 0) {
-        alert('Please submit at least one score')
-        return
+      const scoreEntries = Object.values(scores)
+
+      for (const score of scoreEntries) {
+        const { error } = await supabase
+          .from('scores')
+          .upsert({
+            competitor_id: score.competitor_id,
+            boulder_id: score.boulder_id,
+            topped: score.topped,
+            top_time: score.top_time,
+            submitted_at: new Date().toISOString()
+          }, {
+            onConflict: 'competitor_id,boulder_id'
+          })
+
+        if (error) throw error
       }
 
-      const { error } = await supabase
-        .from('scores')
-        .insert(scoreEntries.map(score => ({
-          ...score,
-          submitted_at: new Date().toISOString()
-        })))
-
-      if (error) throw error
-
-      alert('Scores submitted successfully!')
-      setScores({})
+      alert('Scores saved successfully!')
+      router.push(`/competitions/${competitionId}/results`)
     } catch (error) {
-      console.error('Error submitting scores:', error)
-      alert('Error submitting scores. Please try again.')
+      console.error('Error saving scores:', error)
+      alert('Error saving scores. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -133,6 +195,30 @@ export default function ScoreSubmissionPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Competition not found</h2>
           <p className="text-gray-600">The competition you're looking for doesn't exist.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Please log in</h2>
+          <p className="text-gray-600">You must be logged in to submit scores.</p>
+          <a href="/" className="mt-4 inline-block text-primary hover:underline">Go to Login</a>
+        </div>
+      </div>
+    )
+  }
+
+  if (!competitor) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Not registered</h2>
+          <p className="text-gray-600">You must be registered as a competitor to submit scores.</p>
+          <a href={`/competitions/${competitionId}/competitors`} className="mt-4 inline-block text-primary hover:underline">Register Now</a>
         </div>
       </div>
     )
@@ -162,6 +248,10 @@ export default function ScoreSubmissionPage() {
                 <p className="text-sm text-gray-600">{competition.name}</p>
               </div>
             </div>
+            <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
           </div>
         </div>
       </header>
@@ -203,16 +293,16 @@ export default function ScoreSubmissionPage() {
                       <Button
                         variant={score?.topped ? "default" : "outline"}
                         size="sm"
-                        onClick={() => handleScoreChange(score?.competitor_id, boulder.id, true, score?.top_time || null)}
+                        onClick={() => handleScoreChange(boulder.id, true, score?.top_time || null)}
                         className="flex items-center"
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Topped
                       </Button>
                       <Button
-                        variant={!score?.topped ? "default" : "outline"}
+                        variant={score?.topped === false ? "default" : "outline"}
                         size="sm"
-                        onClick={() => handleScoreChange(score?.competitor_id, boulder.id, false, score?.top_time || null)}
+                        onClick={() => handleScoreChange(boulder.id, false, null)}
                         className="flex items-center"
                       >
                         <XCircle className="h-4 w-4 mr-2" />
@@ -221,7 +311,7 @@ export default function ScoreSubmissionPage() {
                     </div>
 
                     {/* Black Boulder Top Time */}
-                    {boulder.color === 'black' && (
+                    {boulder.color === 'black' && score?.topped && (
                     <div className="flex items-center space-x-2">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -230,7 +320,7 @@ export default function ScoreSubmissionPage() {
                         <input
                           type="time"
                           value={score?.top_time || ""}
-                          onChange={(e) => handleScoreChange(score?.competitor_id, boulder.id, score?.topped || false, e.target.value)}
+                          onChange={(e) => handleScoreChange(boulder.id, true, e.target.value)}
                           className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
@@ -262,11 +352,11 @@ export default function ScoreSubmissionPage() {
         <div className="flex justify-center">
           <Button
             onClick={handleSubmit}
-            disabled={submitting || Object.keys(scores).length === 0}
+            disabled={submitting}
             size="lg"
             className="px-8"
           >
-            {submitting ? 'Submitting...' : 'Submit Scores'}
+            {submitting ? 'Saving...' : 'Save Scores'}
           </Button>
         </div>
       </main>
