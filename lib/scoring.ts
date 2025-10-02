@@ -85,3 +85,32 @@ export function getBoulderColorText(color: string): string {
   }
   return colorMap[color] || 'text-gray-600'
 }
+
+// Finals scoring functions
+export function calculateFinalsScore(
+  topped: boolean,
+  zone: boolean,
+  attempts: number
+): number {
+  const penalty = attempts * 0.1
+  let score: number
+
+  if (topped) {
+    score = 25.0 - penalty
+  } else if (zone) {
+    score = 10.0 - penalty
+  } else {
+    score = 0.0 - penalty
+  }
+
+  // Ensure score doesn't go below 0
+  return Math.max(0, score)
+}
+
+export function calculateTotalFinalsScore(
+  finalsScores: Array<{ topped: boolean; zone: boolean; attempts: number }>
+): number {
+  return finalsScores.reduce((total, score) => {
+    return total + calculateFinalsScore(score.topped, score.zone, score.attempts)
+  }, 0)
+}

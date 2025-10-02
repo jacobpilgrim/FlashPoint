@@ -187,6 +187,102 @@ export interface Database {
           updated_at?: string
         }
       }
+      finals_boulders: {
+        Row: {
+          id: string
+          competition_id: string
+          identifier: string
+          category: 'male' | 'female'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          competition_id: string
+          identifier: string
+          category: 'male' | 'female'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          competition_id?: string
+          identifier?: string
+          category?: 'male' | 'female'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      finals_scores: {
+        Row: {
+          id: string
+          competitor_id: string
+          finals_boulder_id: string
+          topped: boolean
+          zone: boolean
+          attempts: number
+          time_seconds: number | null
+          calculated_score: number
+          submitted_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          competitor_id: string
+          finals_boulder_id: string
+          topped?: boolean
+          zone?: boolean
+          attempts?: number
+          time_seconds?: number | null
+          calculated_score?: number
+          submitted_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          competitor_id?: string
+          finals_boulder_id?: string
+          topped?: boolean
+          zone?: boolean
+          attempts?: number
+          time_seconds?: number | null
+          calculated_score?: number
+          submitted_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      finals_qualifiers: {
+        Row: {
+          id: string
+          competition_id: string
+          competitor_id: string
+          category: 'male' | 'female'
+          qualification_rank: number
+          qualification_score: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          competition_id: string
+          competitor_id: string
+          category: 'male' | 'female'
+          qualification_rank: number
+          qualification_score: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          competition_id?: string
+          competitor_id?: string
+          category?: 'male' | 'female'
+          qualification_rank?: number
+          qualification_score?: number
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

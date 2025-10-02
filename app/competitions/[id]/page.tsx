@@ -320,31 +320,70 @@ export default function CompetitionDetailsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={() => router.push(`/competitions/${competitionId}/score`)}
                   disabled={!competition.is_active}
                 >
                   Submit Scores
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={() => router.push(`/competitions/${competitionId}/results`)}
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   View Results
                 </Button>
-                {isAdmin ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => router.push(`/competitions/${competitionId}/competitors`)}
-                  >
-                    <Shield className="h-4 w-4 mr-2" />
-                    Manage Competitors
-                  </Button>
-                ) : !isRegistered && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => router.push(`/competitions/${competitionId}/finals/results`)}
+                >
+                  <Trophy className="h-4 w-4 mr-2" />
+                  Finals Results
+                </Button>
+                {isAdmin && (
+                  <>
+                    <div className="border-t pt-3 mt-3">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Finals Admin</p>
+                      <div className="space-y-2">
+                        <Button
+                          variant="outline"
+                          className="w-full text-sm"
+                          onClick={() => router.push(`/competitions/${competitionId}/finals/qualify`)}
+                        >
+                          Qualify Finals
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full text-sm"
+                          onClick={() => router.push(`/competitions/${competitionId}/finals/boulders`)}
+                        >
+                          Finals Boulders
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full text-sm"
+                          onClick={() => router.push(`/competitions/${competitionId}/finals/score`)}
+                        >
+                          Finals Scoring
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="border-t pt-3">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => router.push(`/competitions/${competitionId}/competitors`)}
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Manage Competitors
+                      </Button>
+                    </div>
+                  </>
+                )}
+                {!isAdmin && !isRegistered && (
                   <Button
                     variant="outline"
                     className="w-full"

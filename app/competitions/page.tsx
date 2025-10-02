@@ -131,15 +131,22 @@ export default function CompetitionsPage() {
                       <Users className="h-4 w-4 mr-2" />
                       {competition.competitor_count} competitors
                     </div>
-                    <div className="flex gap-2 pt-2">
-                      <Link href={`/competitions/${competition.id}`} className="flex-1">
-                        <Button variant="outline" className="w-full">
-                          View Details
-                        </Button>
-                      </Link>
-                      <Link href={`/competitions/${competition.id}/score`} className="flex-1">
-                        <Button className="w-full">
-                          Submit Score
+                    <div className="space-y-2 pt-2">
+                      <div className="flex gap-2">
+                        <Link href={`/competitions/${competition.id}`} className="flex-1">
+                          <Button variant="outline" className="w-full">
+                            View Details
+                          </Button>
+                        </Link>
+                        <Link href={`/competitions/${competition.id}/score`} className="flex-1">
+                          <Button className="w-full">
+                            Submit Score
+                          </Button>
+                        </Link>
+                      </div>
+                      <Link href={`/competitions/${competition.id}/finals/qualify`} className="w-full block">
+                        <Button variant="outline" className="w-full text-sm">
+                          🏆 Finals
                         </Button>
                       </Link>
                     </div>
