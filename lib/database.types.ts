@@ -283,6 +283,32 @@ export interface Database {
           created_at?: string
         }
       }
+      competition_admins: {
+        Row: {
+          id: string
+          competition_id: string
+          user_id: string
+          invited_by: string | null
+          invited_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          competition_id: string
+          user_id: string
+          invited_by?: string | null
+          invited_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          competition_id?: string
+          user_id?: string
+          invited_by?: string | null
+          invited_at?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

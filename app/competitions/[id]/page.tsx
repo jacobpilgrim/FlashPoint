@@ -372,14 +372,24 @@ export default function CompetitionDetailsPage() {
                       </div>
                     </div>
                     <div className="border-t pt-3">
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => router.push(`/competitions/${competitionId}/competitors`)}
-                      >
-                        <Shield className="h-4 w-4 mr-2" />
-                        Manage Competitors
-                      </Button>
+                      <div className="space-y-2">
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => router.push(`/competitions/${competitionId}/competitors`)}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          Manage Competitors
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => router.push(`/competitions/${competitionId}/admins`)}
+                        >
+                          <Shield className="h-4 w-4 mr-2" />
+                          Manage Admins
+                        </Button>
+                      </div>
                     </div>
                   </>
                 )}

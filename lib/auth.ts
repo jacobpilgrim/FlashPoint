@@ -9,23 +9,24 @@ export async function isCompetitionAdmin(competitionId: string): Promise<boolean
   try {
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
+
     if (userError || !user) {
       return false
     }
 
-    // Check if user is the creator of the competition
-    const { data: competition, error: compError } = await supabase
-      .from('competitions')
-      .select('created_by')
-      .eq('id', competitionId)
-      .single()
+    // Use the database function to check if user is admin (creator or invited admin)
+    const { data, error } = await supabase
+      .rpc('is_competition_admin', {
+        p_competition_id: competitionId,
+        p_user_id: user.id
+      })
 
-    if (compError || !competition) {
+    if (error) {
+      console.error('Error checking admin status:', error)
       return false
     }
 
-    return competition.created_by === user.id
+    return data === true
   } catch (error) {
     console.error('Error checking admin status:', error)
     return false
